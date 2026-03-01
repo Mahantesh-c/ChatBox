@@ -3,12 +3,12 @@
 FROM maven:3.9.6-eclipse-temurin-17-alpine AS build
 WORKDIR /app
 
-# Copy pom.xml first so Docker can cache the dependency layer
-COPY pom.xml .
+# Build context = repo root, so all paths must use backend/ prefix
+COPY backend/pom.xml .
 RUN mvn dependency:go-offline -B
 
 # Copy source and build the production JAR (skip tests for speed)
-COPY src ./src
+COPY backend/src ./src
 RUN mvn package -DskipTests -B
 
 # ── Runtime stage ────────────────────────────────────────────────────────────
