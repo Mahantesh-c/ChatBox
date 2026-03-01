@@ -1,6 +1,5 @@
 // ─── API Service ───────────────────────────────────────────────────────────
-// In production: replace localhost:8080 with your Railway backend URL
-const BASE_URL = `http://${window.location.hostname}:8080/api`;
+const BASE_URL = 'https://chatbox-production-7371.up.railway.app/api';
 
 
 function authHeaders() {
