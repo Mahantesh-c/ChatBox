@@ -1,0 +1,12 @@
+{
+  "name": "chat-frontend",
+  "version": "2.0.0",
+  "description": "Vanilla HTML/CSS/JS Chat App — no build tools",
+  "scripts": {
+    "dev": "live-server --port=5173 --open=login.html",
+    "start": "live-server --port=5173 --open=login.html"
+  },
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  }
+}

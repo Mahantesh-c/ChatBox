@@ -1,0 +1,22 @@
+# ── Backend ──────────────────────────────────────────────
+backend/target/
+backend/.env
+backend/spring-boot.log
+backend/*.log
+
+# ── Frontend ─────────────────────────────────────────────
+frontend/node_modules/
+
+# ── Secrets — NEVER commit these ─────────────────────────
+.env
+*.env.local
+.env.production
+
+# ── OS ───────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── IDE ───────────────────────────────────────────────────
+.idea/
+.vscode/settings.json
+*.iml

@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ChatApp</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="css/style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+</head>
+
+<body>
+
+    <!-- ═══ INCOMING CALL ════════════════════════════════════════════════════ -->
+    <div id="incomingCallModal" class="overlay-backdrop" style="display:none">
+        <div class="incoming-call-card glass-card">
+            <div id="incomingAvatar" class="call-ring-avatar"></div>
+            <p id="incomingCallerName" class="call-name"></p>
+            <p id="incomingCallType" class="call-label"></p>
+            <div class="call-actions">
+                <button id="declineBtn" class="call-btn btn-decline" title="Decline">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M23.47 6.36c-2.1-1.8-4.5-3.07-7.06-3.77a.43.43 0 0 0-.44.17L13.83 5.7a.44.44 0 0 1-.52.16 15.5 15.5 0 0 0-5.81-.01.44.44 0 0 1-.52-.16L5.03 2.76a.43.43 0 0 0-.45-.17C2.03 3.3-.38 4.57-2.47 6.36a.44.44 0 0 0-.08.57l2.54 4.4a.44.44 0 0 0 .53.19l2.97-1.2a.44.44 0 0 1 .48.12l2.14 2.33a.44.44 0 0 0 .53.1 11.6 11.6 0 0 1 8.7 0 .44.44 0 0 0 .53-.1l2.14-2.33a.44.44 0 0 1 .48-.12l2.97 1.2a.44.44 0 0 0 .53-.19l2.54-4.4a.44.44 0 0 0-.08-.57z" />
+                    </svg>
+                </button>
+                <button id="acceptBtn" class="call-btn btn-accept" title="Accept">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path
+                            d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.38 2 2 0 0 1 3.59 1.21h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.77a16 16 0 0 0 6.29 6.29l1.83-1.83a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ ACTIVE CALL OVERLAY ══════════════════════════════════════════════ -->
+    <div id="activeCallOverlay" class="active-call-overlay" style="display:none">
+        <div id="videoContainer" class="video-container" style="display:none">
+            <video id="remoteVideo" class="remote-video" autoplay playsinline></video>
+            <video id="localVideo" class="local-video" autoplay playsinline muted></video>
+        </div>
+        <div id="audioCallInfo" class="audio-call-info">
+            <div id="activeCallAvatar" class="active-call-avatar"></div>
+            <p id="activeCallName" class="active-call-name"></p>
+            <p id="callTimer" class="call-timer">00:00</p>
+            <p id="callStatus" class="call-status-text">Calling…</p>
+        </div>
+        <div class="call-controls">
+            <button id="muteBtn" class="ctrl-btn" title="Mute">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                    <line x1="12" y1="19" x2="12" y2="23" />
+                    <line x1="8" y1="23" x2="16" y2="23" />
+                </svg>
+            </button>
+            <button id="hangUpBtn" class="ctrl-btn ctrl-btn-end" title="End Call">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                        d="M23.47 6.36c-2.1-1.8-4.5-3.07-7.06-3.77a.43.43 0 0 0-.44.17L13.83 5.7a.44.44 0 0 1-.52.16 15.5 15.5 0 0 0-5.81-.01.44.44 0 0 1-.52-.16L5.03 2.76a.43.43 0 0 0-.45-.17C2.03 3.3-.38 4.57-2.47 6.36a.44.44 0 0 0-.08.57l2.54 4.4a.44.44 0 0 0 .53.19l2.97-1.2a.44.44 0 0 1 .48.12l2.14 2.33a.44.44 0 0 0 .53.1 11.6 11.6 0 0 1 8.7 0 .44.44 0 0 0 .53-.1l2.14-2.33a.44.44 0 0 1 .48-.12l2.97 1.2a.44.44 0 0 0 .53-.19l2.54-4.4a.44.44 0 0 0-.08-.57z" />
+                </svg>
+            </button>
+            <button id="cameraBtn" class="ctrl-btn" style="display:none" title="Camera">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M23 7l-7 5 7 5V7z" />
+                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- ═══ MY PROFILE DRAWER ════════════════════════════════════════════════ -->
+    <div id="profileBackdrop" class="drawer-backdrop" style="display:none" onclick="closeMyProfile()"></div>
+    <aside id="profileDrawer" class="side-drawer glass-card" style="display:none">
+        <div class="drawer-header">
+            <h3>My Profile</h3>
+            <button class="icon-btn" onclick="closeMyProfile()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Avatar with upload -->
+        <div class="drawer-avatar-section">
+            <div class="drawer-avatar-wrap" id="myAvatarWrap" title="Click to change photo">
+                <div id="drawerAvatarImg" class="drawer-avatar"></div>
+                <div class="avatar-upload-overlay">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                        <circle cx="12" cy="13" r="4" />
+                    </svg>
+                    <span>Change Photo</span>
+                </div>
+            </div>
+            <input type="file" id="pictureInput" accept="image/*" style="display:none" />
+            <p class="drawer-name" id="drawerFullName"></p>
+            <p class="drawer-sub" id="drawerUsername"></p>
+        </div>
+
+        <!-- Info -->
+        <div class="drawer-info">
+            <div class="info-row">
+                <span class="info-label">Email</span>
+                <span class="info-value" id="drawerEmail"></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Role</span>
+                <span class="info-value role-badge" id="drawerRole"></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Status</span>
+                <span class="info-value" id="drawerStatus"></span>
+            </div>
+        </div>
+
+        <button class="logout-btn" id="drawerLogoutBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            Sign Out
+        </button>
+    </aside>
+
+    <!-- ═══ CONTACT DETAIL PANEL ═════════════════════════════════════════════ -->
+    <div id="contactBackdrop" class="drawer-backdrop" style="display:none" onclick="closeContactPanel()"></div>
+    <aside id="contactDrawer" class="side-drawer glass-card right-drawer" style="display:none">
+        <div class="drawer-header">
+            <h3>Contact Info</h3>
+            <button class="icon-btn" onclick="closeContactPanel()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+
+        <div class="drawer-avatar-section">
+            <div class="drawer-avatar-wrap no-hover">
+                <div id="contactAvatarImg" class="drawer-avatar"></div>
+            </div>
+            <p class="drawer-name" id="contactFullName"></p>
+            <p class="drawer-sub" id="contactUsername"></p>
+        </div>
+
+        <div class="drawer-info">
+            <div class="info-row">
+                <span class="info-label">Status</span>
+                <span class="info-value" id="contactStatus"></span>
+            </div>
+        </div>
+
+        <div class="contact-actions">
+            <button id="contactCallBtn" class="contact-action-btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path
+                        d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.38 2 2 0 0 1 3.59 1.21h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.77a16 16 0 0 0 6.29 6.29l1.83-1.83a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+                </svg>
+                Voice Call
+            </button>
+            <button id="contactVideoBtn" class="contact-action-btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M23 7l-7 5 7 5V7z" />
+                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                </svg>
+                Video Call
+            </button>
+        </div>
+    </aside>
+
+    <!-- ═══ MAIN APP ══════════════════════════════════════════════════════════ -->
+    <div class="app-layout">
+
+        <!-- SIDEBAR -->
+        <aside class="sidebar glass-card">
+
+            <!-- SIDEBAR HEADER (Brand + User) -->
+            <div class="sidebar-header">
+                <div class="header-top">
+                    <div class="app-brand">
+                        <svg class="app-name-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                        </svg>
+                        <span class="app-name-text">ChatterBox</span>
+                        <span class="app-name-badge">BETA</span>
+                    </div>
+                    <div class="header-actions">
+                        <button class="theme-btn" id="themeBtn" title="Toggle theme" onclick="event.stopPropagation()">
+                            <svg id="themeBtnIcon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="5" />
+                                <line x1="12" y1="1" x2="12" y2="3" />
+                                <line x1="12" y1="21" x2="12" y2="23" />
+                                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                                <line x1="1" y1="12" x2="3" y2="12" />
+                                <line x1="21" y1="12" x2="23" y2="12" />
+                                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                            </svg>
+                        </button>
+                        <button class="icon-btn danger" id="logoutBtn" title="Sign out"
+                            onclick="event.stopPropagation()">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                <polyline points="16 17 21 12 16 7" />
+                                <line x1="21" y1="12" x2="9" y2="12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="my-profile-btn" id="myProfileBtn" title="View profile">
+                    <div class="my-avatar-wrap">
+                        <div id="sidebarMyAvatar" class="avatar"></div>
+                        <span class="online-dot"></span>
+                    </div>
+                    <div class="my-info">
+                        <p id="sidebarMyName" class="my-name">Loading…</p>
+                        <p class="my-status">● Online</p>
+                    </div>
+                    <svg class="chevron-right" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 18 15 12 9 6" />
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Search -->
+            <div class="search-wrap">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                <input id="searchInput" class="search-input" type="text" placeholder="Search contacts…" />
+            </div>
+
+            <p class="contacts-label">Contacts</p>
+
+            <div class="contacts-list" id="userList">
+                <p class="list-empty" id="userListMsg">Loading…</p>
+            </div>
+        </aside>
+
+        <!-- CHAT PANEL -->
+        <main class="chat-panel glass-card">
+
+            <!-- No selection -->
+            <div class="no-selection" id="noSelectionState">
+                <div class="no-selection-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                </div>
+                <p>Your messages</p>
+                <span>Select a contact to start chatting</span>
+            </div>
+
+            <!-- Active conversation -->
+            <div id="activeChat" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
+
+                <!-- Header -->
+                <div class="chat-header" id="chatHeader">
+                    <!-- Mobile back button -->
+                    <button class="mobile-back-btn" id="mobileBackBtn" title="Back" aria-label="Back to contacts">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M19 12H5M12 5l-7 7 7 7" />
+                        </svg>
+                    </button>
+                    <div class="chat-header-avatar-wrap" id="chatHeaderAvatarWrap" title="View contact info"
+                        style="cursor:pointer">
+                        <div class="avatar" id="chatAvatar"></div>
+                        <span id="chatOnlineDot" class="chat-online-dot" style="display:none"></span>
+                    </div>
+                    <div style="flex:1;min-width:0">
+                        <p class="chat-peer-name" id="chatHeaderName"></p>
+                        <p class="chat-peer-status" id="chatHeaderStatus"></p>
+                    </div>
+                    <div class="header-actions">
+                        <button id="audioCallBtn" class="icon-btn" title="Voice call">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path
+                                    d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.38 2 2 0 0 1 3.59 1.21h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.77a16 16 0 0 0 6.29 6.29l1.83-1.83a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+                            </svg>
+                        </button>
+                        <button id="videoCallBtn" class="icon-btn" title="Video call">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M23 7l-7 5 7 5V7z" />
+                                <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                            </svg>
+                        </button>
+                        <button id="infoBtn" class="icon-btn" title="Contact info">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10" />
+                                <line x1="12" y1="8" x2="12" y2="12" />
+                                <line x1="12" y1="16" x2="12.01" y2="16" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Messages -->
+                <div class="messages-area" id="messagesArea">
+                    <div class="empty-messages" id="noMessagesState">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                        </svg>
+                        <p>No messages yet</p>
+                        <span>Say hello 👋</span>
+                    </div>
+                </div>
+
+                <!-- Input -->
+                <div class="input-bar">
+                    <input id="messageInput" class="msg-input" type="text" placeholder="Type a message…"
+                        autocomplete="off" />
+                    <button id="sendBtn" class="send-btn" title="Send">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13" />
+                            <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        import { initTheme, toggleTheme, isDark } from './js/theme.js';
+        initTheme();
+        const MOON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
+        const SUN = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+        function syncIcon() {
+            const btn = document.getElementById('themeBtn');
+            if (btn) btn.innerHTML = isDark() ? SUN : MOON;
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            syncIcon();
+            const btn = document.getElementById('themeBtn');
+            if (btn) btn.addEventListener('click', () => { toggleTheme(); syncIcon(); });
+        });
+        // expose close helpers for inline onclick
+        window.closeMyProfile = () => { document.getElementById('profileDrawer').style.display = 'none'; document.getElementById('profileBackdrop').style.display = 'none'; };
+        window.closeContactPanel = () => { document.getElementById('contactDrawer').style.display = 'none'; document.getElementById('contactBackdrop').style.display = 'none'; };
+    </script>
+    <script type="module" src="js/chat.js"></script>
+</body>
+
+</html>
